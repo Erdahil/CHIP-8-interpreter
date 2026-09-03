@@ -8,20 +8,32 @@
 MainWindow::MainWindow(QWidget *parent): QWidget(parent)
 {
     setWindowTitle("CHIP-8");
-    resize(640,320);
+    resize(640,345);
 
     szer = 640;
     wys = 320;
     poczX = 0;
-    poczY = 0;
+    poczY = 25;
 
 
-    cpuTimer.setInterval(1000 / 700);//should be probably faster for some modern games
+    cpuTimer.setInterval(1000 / 1000);//should be probably faster for some modern games
     timerTimer.setInterval(1000 / 60);
 
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+
+    QMenuBar *menuBar = new QMenuBar(this);
+    QMenu *fileMenu = menuBar->addMenu("File");
+    QAction *loadAction = new QAction("Load", this);
+    fileMenu->addAction(loadAction);
+
+    //connect(&loadAction, SIGNAL(triggered()), this, SLOT(loadProgram()));
+    connect(loadAction, &QAction::triggered, this, &MainWindow::loadProgram);
     //connect(cpuTimer, &QTimer::timeout, this, &MainWindow::cycle());//wtf does that not work
     connect(&cpuTimer, SIGNAL(timeout()), this, SLOT(cycle()));
     connect(&timerTimer, SIGNAL(timeout()), this, SLOT(updateTimers()));
+
+    mainLayout->setMenuBar(menuBar);
 
     for(int i=0; i<4096; i++)
     {
@@ -61,7 +73,7 @@ MainWindow::MainWindow(QWidget *parent): QWidget(parent)
 
     czysc();
 
-    openFile("C:/Users/pawel/OneDrive/Dokumenty/QtProjects/CHIP-8/programs/snake.ch8");
+    //openFile("C:/Users/pawel/OneDrive/Dokumenty/QtProjects/CHIP-8/programs/snake.ch8");
     //openFile("C:/Users/pawel/OneDrive/Dokumenty/QtProjects/CHIP-8/programs/test_opcode.ch8");
     //openFile("C:/Users/pawel/OneDrive/Dokumenty/QtProjects/CHIP-8/programs/IBM_Logo.ch8");
 
@@ -459,6 +471,33 @@ void MainWindow::openFile(QString path)
     QByteArray romData=file.readAll();
     file.close();
 
+    for(int i=0; i<4096; i++)
+    {
+        memory[i]=0;
+    }
+
+    for(int i=0; i<16; i++)
+    {
+        registers[i]=0;
+    }
+
+    for(int i=0; i<16; i++)
+    {
+        stack[i]=0;
+    }
+
+    for(int i=0; i<32; i++)
+    {
+        for(int j=0; j<64; j++)
+        {
+            display[i][j]=false;
+        }
+    }
+
+    std::copy(fontset.begin(), fontset.end(), memory.begin() + 0x50);
+
+    stackPointer=0;
+
     for(int i=0; i<romData.size(); i++)
     {
         memory[0x200+i]=static_cast<uint8_t>(romData[i]);
@@ -467,10 +506,22 @@ void MainWindow::openFile(QString path)
     programCounter=0x200;
 
     std::cout<<"Loaded"<<std::endl;
+
+
     cpuTimer.start();
     timerTimer.start();
 }
 
+void MainWindow::loadProgram()
+{
+    QString fileName = QFileDialog::getOpenFileName(
+        this, "Select CHIP-8 program",
+        "", "CHIP-8 programs (*.ch8);;All files (*)");
+    if(!fileName.isEmpty())
+    {
+        openFile(fileName);
+    }
+}
 
 void MainWindow::paintEvent(QPaintEvent*)
 {

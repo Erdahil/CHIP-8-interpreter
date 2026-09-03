@@ -22,6 +22,10 @@
 #include <QFile>
 #include <QByteArray>
 #include <random>
+#include <QFileDialog>
+#include <QMenu>
+#include <QAction>
+#include <QMenuBar>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -129,5 +133,6 @@ private:
 private slots:
     void cycle();
     void updateTimers();
+    void loadProgram();
 
 };
